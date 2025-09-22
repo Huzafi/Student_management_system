@@ -1,60 +1,57 @@
+import streamlit as st
 import csv
-from google.colab import files
+import pandas as pd
+import os
 
-def student_management_system():
-    """
-    A simple student management system that allows for adding, viewing, and saving student data to a CSV file.
-    """
+# CSV filename
+FILENAME = "students.csv"
 
-    def add_student(students):
-        """Adds a new student to the student list."""
-        name = input("Enter student name: ")
-        roll_number = input("Enter student roll number: ")
-        grade = input("Enter student grade: ")
-        students.append([name, roll_number, grade])
-        print(f"Student {name} added successfully!")
+# Load existing students from CSV
+def load_students():
+    if os.path.exists(FILENAME):
+        return pd.read_csv(FILENAME).values.tolist()
+    return []
 
-    def view_students(students):
-      """Displays the list of students."""
-      if not students:
-          print("No students in the database yet.")
-          return
+# Save students to CSV
+def save_students(students):
+    with open(FILENAME, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Name", "Roll Number", "Grade"])  # header
+        writer.writerows(students)
 
-      print("-" * 30)
-      print("{:<15} {:<15} {:<10}".format("Name", "Roll Number", "Grade"))
-      print("-" * 30)
-      for student in students:
-          print("{:<15} {:<15} {:<10}".format(student[0], student[1], student[2]))
-      print("-" * 30)
+# Streamlit App
+st.title("🎓 Student Management System")
 
+# Load students in session state
+if "students" not in st.session_state:
+    st.session_state.students = load_students()
 
-    def save_students_to_csv(students, filename="students.csv"):
-        """Saves the student data to a CSV file."""
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(["Name", "Roll Number", "Grade"])  # Write header row
-            writer.writerows(students)
-        print(f"Student data saved to {filename}")
+# Tabs
+tab1, tab2, tab3 = st.tabs(["➕ Add Student", "📋 View Students", "💾 Save to CSV"])
 
-
-    students = []
-    while True:
-        print("\nStudent Management System Menu:")
-        print("1. Add Student")
-        print("2. View Students")
-        print("3. Save to CSV")
-        print("4. Exit")
-        choice = input("Enter your choice: ")
-        if choice == '1':
-            add_student(students)
-        elif choice == '2':
-            view_students(students)
-        elif choice == '3':
-            save_students_to_csv(students)
-        elif choice == '4':
-            break
+with tab1:
+    st.header("Add Student")
+    name = st.text_input("Enter student name")
+    roll_number = st.text_input("Enter roll number")
+    grade = st.text_input("Enter grade")
+    if st.button("Add Student"):
+        if name and roll_number and grade:
+            st.session_state.students.append([name, roll_number, grade])
+            st.success(f"Student {name} added successfully!")
         else:
-            print("Invalid choice. Please try again.")
+            st.error("Please fill all fields!")
 
-student_management_system()
+with tab2:
+    st.header("View Students")
+    if st.session_state.students:
+        df = pd.DataFrame(st.session_state.students, columns=["Name", "Roll Number", "Grade"])
+        st.table(df)
+    else:
+        st.info("No students in the database yet.")
+
+with tab3:
+    st.header("Save Data")
+    if st.button("Save to CSV"):
+        save_students(st.session_state.students)
+        st.success(f"Student data saved to {FILENAME}")
 
